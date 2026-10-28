@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String        @id @default(uuid())
+  email         String?       @unique
+  phone         String?       @unique
+  otpSecret     String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  designs       Design[]
+  measurements  Measurement[]
+  orders        Order[]
+}
+
+model Garment {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  colors        Json   // array of color hex strings
+  sizeChart     Json   // arbitrary JSON structure
+  printAreas    Json   // { front: {x,y,width,height}, back: {...}, sleeves: {...} }
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  designs       Design[]
+}
+
+model Design {
+  id            String   @id @default(uuid())
+  userId        String
+  garmentId     String
+  version       Int      @default(1)
+  color         String   // selected garment color
+  views         Json     // { front: [], back: [], sleeves: [] }
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id])
+  garment       Garment  @relation(fields: [garmentId], references: [id])
+  orders        Order[]
+}
+
+model Measurement {
+  id            String   @id @default(uuid())
+  userId        String
+  data          Json
+  createdAt     DateTime @default(now())
+
+  user          User     @relation(fields: [userId], references: [id])
+}
+
+model Order {
+  id            String   @id @default(uuid())
+  userId        String
+  designId      String
+  status        String   @default("pending")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id])
+  design        Design   @relation(fields: [designId], references: [id])
+  events        OrderEvent[]
+}
+
+model Partner {
+  id            String   @id @default(uuid())
+  name          String
+  apiKey        String?
+  createdAt     DateTime @default(now())
+}
+
+model OrderEvent {
+  id            String   @id @default(uuid())
+  orderId       String
+  type          String
+  payload       Json
+  timestamp     DateTime @default(now())
+
+  order         Order    @relation(fields: [orderId], references: [id])
+}
